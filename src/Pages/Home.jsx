@@ -1,136 +1,131 @@
-import React, { useState } from "react"
-import { useSelector, useDispatch } from "react-redux"
+import { useEffect } from "react"
+import { useDispatch, useSelector } from "react-redux"
 import { Link } from "react-router-dom"
-import { addToCart } from "../Redux/slice"
+import { additem, deleteitem } from "../Redux/slice"
+import { fetchProducts } from "../Redux/productslice"
 
 function Home() {
   const dispatch = useDispatch()
-  const products = useSelector((state) => state.cart.products)
-  const [addedId, setAddedId] = useState(null)
+    const cartItems = useSelector((state) => state.cart.item)
+  const { items: products, status } = useSelector((state) => state.products)
 
-  const handleAddToCart = (product) => {
-    dispatch(addToCart(product))
-    setAddedId(product.id)
-    setTimeout(() => setAddedId(null), 1200)
-  }
+  useEffect(() => {
+    if (status === "idle" || !status) {
+      dispatch(fetchProducts())
+    }
+  }, [dispatch, status])
+
+  // Get the first product as the featured trending product
+  const featuredProduct = products && products.length > 0 ? products[0] : null
+  // Get the next few products for a top picks preview
+  const topProducts = products && products.length > 1 ? products.slice(1) : []
 
   return (
-    <div className="home-container">
-      {/* Hero Promo Banner (Shopify Style) */}
-      <section className="hero-section">
-        <div className="hero-content">
-          <span className="promo-badge">🔥 LIMITED TIME FLASH SALE</span>
-          <h1 className="hero-heading">Upgrade Your Gear With Premium Essentials</h1>
-          <p className="hero-description">
-            Discover top-tier audio, smart wearables, and desktop gear with verified warranty and express delivery.
-          </p>
-          <div className="hero-buttons">
-            <Link to="/Products" className="btn btn-primary-dark">
-              Shop All Deals
-            </Link>
-            <Link to="/Products" className="btn btn-outline">
-              New Arrivals
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Feature Highlights Bar (Amazon / Daraz Style) */}
-      <section className="features-bar">
-        <div className="feature-item">
-          <span className="feature-icon">🚀</span>
-          <div>
-            <h4>Free Express Shipping</h4>
-            <p>On orders above $50</p>
-          </div>
-        </div>
-        <div className="feature-item">
-          <span className="feature-icon">🛡️</span>
-          <div>
-            <h4>100% Authentic</h4>
-            <p>Official manufacturer warranty</p>
-          </div>
-        </div>
-        <div className="feature-item">
-          <span className="feature-icon">🔄</span>
-          <div>
-            <h4>Easy 30-Day Returns</h4>
-            <p>Hassle-free refund policy</p>
-          </div>
-        </div>
-        <div className="feature-item">
-          <span className="feature-icon">🔒</span>
-          <div>
-            <h4>Secure Checkout</h4>
-            <p>SSL encrypted payments</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Flash Sale / Featured Products Section */}
-      <section className="products-section">
-        <div className="section-title-wrap">
-          <div>
-            <h2 className="section-title">Today's Best Deals</h2>
-            <p className="section-subtitle">Grab top-rated products at unbeatable discounted prices</p>
-          </div>
-          <Link to="/Products" className="btn-link">
-            View All ({products.length}) &rarr;
-          </Link>
+    <div className="home-page">
+      <div className="home-container">
+        <div className="section-header">
+          <h2>Trending Product</h2>
+          <Link to="/Products" className="view-all-link">View all products →</Link>
         </div>
 
-        <div className="products-grid">
-          {products.slice(0, 4).map((product) => (
-            <div key={product.id} className="store-product-card">
-              <div className="card-image-box">
-                {product.discount && (
-                  <span className="discount-tag">{product.discount}</span>
-                )}
-                <img
-                  src={product.image}
-                  alt={product.title}
-                  className="product-img"
-                  loading="lazy"
-                />
-              </div>
+        {status === "loading" && !featuredProduct && (
+          <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)" }}>
+            Loading trending product...
+          </div>
+        )}
 
-              <div className="card-info">
-                <span className="product-category-label">{product.category}</span>
-                <h3 className="product-name" title={product.title}>
-                  {product.title}
-                </h3>
-
-                {/* Rating & Reviews */}
-                <div className="rating-box">
-                  <span className="stars">★ {product.rating}</span>
-                  <span className="reviews">({product.reviewsCount} reviews)</span>
+        {featuredProduct && (
+          <div className="featured-card">
+            <div className="featured-image-container">
+              <img
+                src={featuredProduct.thumbnail}
+                alt={featuredProduct.title}
+              />
+            </div>
+            <div className="featured-details">
+              <span className="product-badge">{featuredProduct.category} • Top Pick</span>
+              <h2>{featuredProduct.title}</h2>
+              <p className="featured-description">
+                {featuredProduct.description}
+              </p>
+              <div className="featured-price-row">
+                <div className="price-tag">
+                  <span className="current-price">${featuredProduct.price}</span>
+                  {featuredProduct.discountPercentage && (
+                    <span className="discountPercentage">
+                      {featuredProduct.discountPercentage}% OFF
+                    </span>
+                  )}
                 </div>
-
-                {/* Pricing & Free delivery badge */}
-                <div className="price-row">
-                  <div className="price-group">
-                    <span className="current-price">${product.price.toFixed(2)}</span>
-                    {product.originalPrice && (
-                      <span className="old-price">
-                        ${product.originalPrice.toFixed(2)}
-                      </span>
-                    )}
-                  </div>
-                  <span className="free-shipping-tag">Free Delivery</span>
-                </div>
-
-                {/* Action button */}
-                <button
-                  className={`add-cart-btn ${addedId === product.id ? "btn-added" : ""}`}
-                  onClick={() => handleAddToCart(product)}
-                >
-                  {addedId === product.id ? "✓ Added in Cart" : "Add to Cart"}
-                </button>
+{
+                       cartItems.find(cart => cart.id === featuredProduct.id)?
+                      <button
+                        className="btn btn-danger"
+                        onClick={() => dispatch(deleteitem(featuredProduct))}
+                      >
+                        Remove from Cart
+                      </button>
+                      :
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => dispatch(additem(featuredProduct))}
+                      >
+                        Add to Cart
+                      </button>
+                      }
               </div>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        )}
+
+        {/* Top Picks Preview */}
+        {topProducts.length > 0 && (
+          <div style={{ marginTop: "3.5rem" }}>
+            <div className="section-header">
+              <h2>Popular Highlights</h2>
+              <Link to="/Products" className="view-all-link">See more →</Link>
+            </div>
+            <div className="product-grid">
+              {topProducts.map((item) => (
+                <div className="product-card" key={item.id}>
+                  <div className="product-image-wrapper">
+                    <img
+                      className="product-image"
+                      src={item.thumbnail}
+                      alt={item.title}
+                    />
+                  </div>
+                  <div className="product-item-details">
+                    <span className="product-category">{item.category}</span>
+                    <h2 className="product-title">{item.title}</h2>
+                    <p className="product-description">{item.description}</p>
+                    <div className="product-card-footer">
+                      <span className="product-price">${item.price}</span>
+                      <span className="discountPercentage">{item.discountPercentage}% OFF</span>
+                      {
+                       cartItems.find(cart => cart.id === item.id)?
+                      <button
+                        className="btn btn-danger"
+                        onClick={() => dispatch(deleteitem(item))}
+                      >
+                        Remove from Cart
+                      </button>
+                      :
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => dispatch(additem(item))}
+                      >
+                        Add to Cart
+                      </button>
+                      }
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
